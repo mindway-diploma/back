@@ -1,4 +1,3 @@
-// C:\ШАГ 4 КУРС\pharma-backend\models\User.js
 
 import mongoose from "mongoose";
 

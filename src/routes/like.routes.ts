@@ -55,14 +55,14 @@ router.get("/:objectId/:objectType", async (req: Request, res: Response) => {
 });
 
 // Проверить, поставил ли пользователь лайк
-router.get("/:objectId/:objectType/is-liked", /*verifyJWT,*/ async (req: Request, res: Response) => {
+router.get("/:objectId/:objectType/is-liked", verifyJWT, async (req: Request, res: Response) => {
     try {
-        const user = (req as any).id || req.query.user; // user id должен приходить в query или быть в req.user
+        const user = (req as any).id; // user id должен приходить в query или быть в req.user
         const { objectId, objectType } = req.params;
         // const { user } = req.query; // user id должен приходить в query или быть в req.user
         if (!user) return res.status(400).json({ error: "user обязателен" });
-        const liked = await LikeModel.exists({ objectId, objectType, user });
-        res.json({ liked: !!liked });
+        const isLiked = await LikeModel.exists({ objectId, objectType, user });
+        res.json({ isLiked: isLiked ? true : false });
     } catch (err) {
         res.status(500).json({ error: "Ошибка сервера" });
     }

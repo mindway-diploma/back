@@ -8,7 +8,7 @@ export interface IComment {
     mentions: Schema.Types.ObjectId[],
     text: string;
     images: string[];
-    replies?: IComment[];
+    replies?: ICommentModel[];
 }
 
 export interface ICommentModel extends IComment, Document {

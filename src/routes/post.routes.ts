@@ -16,7 +16,7 @@ router.get("/", async (req: Request, res: Response) => {
         if (topic) {
             filter = { topic };
         }
-        const posts = await PostModel.find(filter).populate("creator");
+        const posts = await PostModel.find(filter).sort({createdAt: -1}).populate("creator");
         res.json(posts);
     } catch (err) {
         res.status(500).json({ error: "Ошибка сервера" });

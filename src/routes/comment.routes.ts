@@ -1,27 +1,50 @@
 import { Router, Request, Response } from "express";
 import { CommentModel } from "../models/Comment.model.js";
+import verifyJWT from "../middlewares/verifyJWT.js";
+import { ObjectId } from "mongoose";
 
 const router = Router();
 
 // Создать комментарий
-router.post("/", async (req: Request, res: Response) => {
+router.post("/", verifyJWT, async (req: any, res: Response) => {
     try {
-        const { post, author, parentComment, mentions, text, images } = req.body;
-        const newComment = new CommentModel({ post, author, parentComment, mentions, text, images });
-        await newComment.save();
+        const { post, author, parentCommentId, mentions, text } = req.body;
+        const userId = req.id;
+        console.log("create comment", req.body);
+        const newComment = await CommentModel.create({ post, author: userId, parentComment: parentCommentId || null, mentions, text });
         res.status(201).json(newComment);
     } catch (err) {
+        console.log(err);
         res.status(400).json({ error: "Ошибка при создании комментария" });
     }
 });
 
+async function getReplies(parentCommentId: string | ObjectId) {
+    const replies = await CommentModel.find({ parentComment: parentCommentId })
+          .populate("author", "name surname avatar")
+          .populate("mentions", "name surname")
+          .lean();
+
+        for (const reply of replies) {
+          reply.replies = await getReplies(reply._id as string);
+        }
+      
+        return replies;
+}
 // Получить комментарии по postId
 router.get("/post/:postId", async (req: Request, res: Response) => {
     try {
-        const comments = await CommentModel.find({ post: req.params.postId })
-            .populate("author")
-            .populate("mentions")
-            .populate("parentComment");
+        const postId = req.params.postId;
+        const comments = await CommentModel.find({ post: postId, parentComment: null })
+            .sort({createdAt: -1})
+            .populate("author", "name surname avatar")
+            .populate("mentions", "name surname")
+            .lean();
+
+        for (const comment of comments) {
+            comment.replies = await getReplies(comment._id as string);
+        }
+
         res.json(comments);
     } catch (err) {
         res.status(500).json({ error: "Ошибка сервера" });
@@ -31,9 +54,13 @@ router.get("/post/:postId", async (req: Request, res: Response) => {
 // Получить количество комментариев по postId
 router.get("/post/:postId/count", async (req: Request, res: Response) => {
     try {
-        const count = await CommentModel.countDocuments({ post: req.params.postId });
-        res.json({ count });
+        console.log("INSIDE")
+        console.log(req.params.postId)
+        const commentsCount = await CommentModel.countDocuments({ post: req.params.postId });
+        console.log(commentsCount);
+        res.json({ commentsCount });
     } catch (err) {
+        console.log(err);
         res.status(500).json({ error: "Ошибка сервера" });
     }
 });
